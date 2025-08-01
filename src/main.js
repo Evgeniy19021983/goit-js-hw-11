@@ -1,61 +1,53 @@
-import SimpleLightbox from 'simplelightbox';
-import 'simplelightbox/dist/simple-lightbox.min.css';
-
+import { doFetch } from './js/pixabay-api';
+import { renderGallery, clearGallery, showLoader, hideLoader } from './js/render-functions';
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
-import { createMarkup } from './js/render-functions';
-import { fetchImages } from './js/pixabay-api';
-
 const searchForm = document.querySelector('#search-form');
-const gallery = document.querySelector('.gallery');
-const loader = document.querySelector('.loader');
 
-const lightbox = new SimpleLightbox('.gallery a', {
-  captionsData: 'alt',
-  captionDelay: 250,
-});
+searchForm.addEventListener('submit', onSearch);
 
-searchForm.addEventListener('submit', onSearchSubmit);
-
-async function onSearchSubmit(event) {
+async function onSearch(event) {
   event.preventDefault();
-  gallery.innerHTML = '';
+  clearGallery();
+
   const query = event.currentTarget.elements.searchQuery.value.trim();
 
   if (!query) {
     iziToast.error({
       title: 'Error',
-      message: 'Please, enter a search query.',
+      message: 'Please enter a search query',
       position: 'topCenter',
+      timeout: 2000,
     });
     return;
   }
 
-  loader.classList.remove('is-hidden');
+  showLoader();
 
   try {
-    const images = await fetchImages(query);
+    const images = await doFetch(query);
 
     if (images.length === 0) {
       iziToast.error({
-        title: 'No Results',
-        message: 'No images found. Try a different query.',
+        title: 'No results',
+        message: 'No images found. Please try another query.',
         position: 'topCenter',
+        timeout: 2000,
       });
+      hideLoader();
       return;
     }
 
-    gallery.insertAdjacentHTML('beforeend', createMarkup(images));
-    lightbox.refresh();
+    renderGallery(images);
   } catch (error) {
     iziToast.error({
-      title: 'Fetch Error',
+      title: 'Error',
       message: error.message,
       position: 'topCenter',
+      timeout: 2000,
     });
   } finally {
-    loader.classList.add('is-hidden');
-    searchForm.reset();
+    hideLoader();
   }
 }
